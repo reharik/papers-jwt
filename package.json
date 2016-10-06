@@ -1,0 +1,26 @@
+{
+  "name": "papers-jwt",
+  "version": "2.1.0",
+  "description": "Papers authentication strategy using JSON Web Tokens",
+  "main": "./lib",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha --reporter spec --require test/bootstrap test/*test.js",
+    "testcov": "istanbul cover node_modules/mocha/bin/_mocha -- --reporter spec --require test/bootstrap test/*test.js"
+  },
+  "keywords": [
+    "Strategy",
+    "JSON",
+    "Web",
+    "Token",
+    "JWT"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^1.9.2",
+    "mocha": "^2.0.1",
+    "sinon": "^1.11.1"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^5.0.0"
+  }
+}
