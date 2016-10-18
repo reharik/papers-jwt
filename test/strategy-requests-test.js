@@ -21,22 +21,22 @@ describe('Strategy', function() {
 
 
     describe('handling request JWT present in request', function() {
-        var strategy;
+        var s;
 
         before(function(done) {
-            strategy = new Strategy({
+            s = strategy(                function(jwt_payload, next) {
+                // Return values aren't important in this case
+                return next(null, {}, {});
+            },
+              {
                     jwtFromRequest: function (r) { return test_data.valid_jwt.token; },
                     secretOrKey: 'secret'
-                },
-                function(jwt_payload, next) {
-                    // Return values aren't important in this case
-                    return next(null, {}, {});
                 }
             );
             
             mockVerifier.reset();
            
-            chai.passport.use(strategy)
+            chai.passport.use(s)
                 .success(function(u, i) {
                     done();
                 })

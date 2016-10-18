@@ -126,9 +126,9 @@ describe('Token extractor', function() {
         
         var extractor = extract_jwt.fromAuthHeader();
 
-        it('should return the value from the authorization header with default JWT auth scheme', function() {
+        it('should return the value from the authorization header with default bearer auth scheme', function() {
             var req = new Request()
-            req.headers['authorization'] = "JWT abcd123";
+            req.headers['authorization'] = "bearer abcd123";
 
             var token = extractor(req);
 
@@ -172,7 +172,7 @@ describe('Token extractor', function() {
 
         it('should return token found by first extractor', function() {
             var req = new Request()
-            req.headers['authorization'] = "JWT abcd123";
+            req.headers['authorization'] = "bearer abcd123";
 
             var token = extractor(req);
 
@@ -190,7 +190,7 @@ describe('Token extractor', function() {
 
                 it('should return the token in the default "JWT" auth header', function () {
                     var req = new Request();
-                    req.headers['authorization'] = "JWT abcd123";
+                    req.headers['authorization'] = "bearer abcd123";
 
                     var token = extractor(req);
 
