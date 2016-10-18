@@ -1,14 +1,18 @@
-# passport-jwt
+# papers-jwt
 
-A [Passport](http://passportjs.org/) strategy for authenticating with a
+A [papers](https://www.npmjs.com/package/papers) strategy for authenticating with a
 [JSON Web Token](http://jwt.io).
 
 This module lets you authenticate endpoints using a JSON web token. It is
 intended to be used to secure RESTful endpoints without sessions.
 
+This strategy was ported from [passport-jwt](https://www.npmjs.com/package/passport-jwt) to work with papers. My thanks to [Mike Nicholson](https://www.npmjs.com/~themikenicholson) 
+
+This strategy works fine with KOA or KOA2 (via kao-convert)
+
 ## Install
 
-    npm install passport-jwt
+    npm install papers-jwt
 
 ## Usage
 
@@ -16,7 +20,7 @@ intended to be used to secure RESTful endpoints without sessions.
 
 The JWT authentication strategy is constructed as follows:
 
-    new JwtStrategy(options, verify)
+    jwtStrategy(validate, options)
 
 `options` is an object literal containing options to control how the token is
 extracted from the request or verified.
@@ -35,39 +39,33 @@ extracted from the request or verified.
   this value.
 * `algorithms`: List of strings with the names of the allowed algorithms. For instance, ["HS256", "HS384"].
 * `ignoreExpiration`: if true do not validate the expiration of the token.
-* `passReqToCallback`: If true the request will be passed to the verify
-  callback. i.e. verify(request, jwt_payload, done_callback).
 
-`verify` is a function with the parameters `verify(jwt_payload, done)`
+`validate` is a function with the parameters `verify(jwt_payload, req)`
 
 * `jwt_payload` is an object literal containing the decoded JWT payload.
-* `done` is a passport error first callback accepting arguments
-  done(error, user, info)
+* `req` is the request object (ctx in koa)
+* `result` should be either a user ( or the body of the payload ), a failure [undefined, null, false] or an error thrown
 
 An example configuration which reads the JWT from the http
-Authorization header with the scheme 'JWT':
+Authorization header with the scheme 'bearer':
 
 ```js
-var JwtStrategy = require('passport-jwt').Strategy,
-    ExtractJwt = require('passport-jwt').ExtractJwt;
+var papersjwt = require('papers-jwt');
+var ExtractJwt = papersjwt.ExtractJwt;
+
 var opts = {}
 opts.jwtFromRequest = ExtractJwt.fromAuthHeader();
 opts.secretOrKey = 'secret';
 opts.issuer = "accounts.examplesoft.com";
 opts.audience = "yoursite.net";
-passport.use(new JwtStrategy(opts, function(jwt_payload, done) {
-    User.findOne({id: jwt_payload.sub}, function(err, user) {
-        if (err) {
-            return done(err, false);
-        }
-        if (user) {
-            done(null, user);
-        } else {
-            done(null, false);
-            // or you could create a new account
-        }
-    });
-}));
+
+var authUser = function(jwtPayload, req){
+	// use decoded jwt payload to find and return a user
+	// otherwise return false, or throw
+}
+
+var jwtStrategy = papersjwt.Strategy(authUser, opts);
+
 ```
 
 ### Extracting the JWT from the request
@@ -79,7 +77,7 @@ accepts a request object as an argument and returns the encoded JWT string or *n
 
 #### Included extractors 
 
-A number of extractor factory functions are provided in passport-jwt.ExtractJwt. These factory
+A number of extractor factory functions are provided in papers-jwt.ExtractJwt. These factory
 functions return a new extractor configured with the given parameters.
 
 * ```fromHeader(header_name)``` creates a new extractor that looks for the JWT in the given http
@@ -91,7 +89,7 @@ functions return a new extractor configured with the given parameters.
 * ```fromAuthHeaderWithScheme(auth_scheme)``` creates a new extractor that looks for the JWT in the
   authorization header, expecting the scheme to match auth_scheme.
 * ```fromAuthHeader()``` creates a new extractor that looks for the JWT in the authorization header
-  with the scheme 'JWT'
+  with the scheme 'bearer'
 * ```fromExtractors([array of extractor functions])``` creates a new extractor using an array of
   extractors provided. Each extractor is attempted in order until one returns a token.
 
@@ -114,10 +112,16 @@ var cookieExtractor = function(req) {
 
 ### Authenticate requests
 
-Use `passport.authenticate()` specifying `'JWT'` as the strategy.
-
+Use `papers().registerMiddleware(config)` specifying `'JWT'` as the strategy.
 ```js
-app.post('/profile', passport.authenticate('jwt', { session: false}),
+var papersConfig = {
+  strategies: [ JWTStrategy ]
+}
+app.use(papers().registerMiddleware(config));
+```
+or for a specific endpoint
+```js
+app.post('/profile', papers().registerMiddleware(config),
     function(req, res) {
         res.send(req.user.profile);
     }
@@ -128,10 +132,10 @@ app.post('/profile', passport.authenticate('jwt', { session: false}),
 
 The strategy will first check the request for the standard *Authorization*
 header. If this header is present and the scheme matches `options.authScheme`
-or 'JWT' if no auth scheme was specified then the token will be retrieved from
+or the shceme matches 'bearer' (the scheme recommended by jwt.io) then the token will be retrieved from
 it. e.g.
 
-    Authorization: JWT JSON_WEB_TOKEN_STRING.....
+    Authorization: bearer JSON_WEB_TOKEN_STRING.....
 
 If the authorization header with the expected scheme is not found, the request
 body will be checked for a field matching either `options.tokenBodyField` or
@@ -140,47 +144,6 @@ body will be checked for a field matching either `options.tokenBodyField` or
 Finally, the URL query parameters will be checked for a field matching either
 `options.tokenQueryParameterName` or `auth_token` if the option was not
 specified.
-
-## Migrating from version 1.x.x to 2.x.x
-
-The v2 API is not backwards compatible with v1, specifically with regards to the introduction
-of the concept of JWT extractor functions.  If you require the legacy behavior in v1 you can use
-the extractor function ```versionOneCompatibility(options)```
-
-*options* is an object with any of the three custom JWT extraction options present in the v1
-constructor:
-* `tokenBodyField`: Field in a request body to search for the JWT.
-  Default is auth_token.
-* `tokenQueryParameterName`: Query parameter name containing the token.
-  Default is auth_token.
-* `authScheme`: Expected authorization scheme if token is submitted through
-  the HTTP Authorization header. Defaults to JWT
-
-If in v1 you constructed the strategy like this:
-
-```js
-var JwtStrategy = require('passport-jwt').Strategy;
-var opts = {}
-opts.tokenBodyField = "MY_CUSTOM_BODY_FIELD";
-opts.secretOrKey = 'secret';
-opts.issuer = "accounts.examplesoft.com";
-opts.audience = "yoursite.net";
-passport.use(new JwtStrategy(opts, verifyFunction));
-```
-
-Identical behavior can be achieved under v2 with the versionOneCompatibility extractor:
-
-```js
-var JwtStrategy = require('passport-jwt').Strategy,
-    ExtractJwt = require('passport-jwt').ExtractJwt;
-var opts = {}
-opts.jwtFromRequest = ExtractJwt.versionOneCompatibility({ tokenBodyField = "MY_CUSTOM_BODY_FIELD" });
-opts.opts.secretOrKey = 'secret';
-opts.issuer = "accounts.examplesoft.com";
-opts.audience = "yoursite.net";
-passport.use(new JwtStrategy(opts, verifyFunction));
-```
-
 
 ## Tests
 
@@ -197,4 +160,3 @@ To generate test-coverage reports:
 
 The [MIT License](http://opensource.org/licenses/MIT)
 
-Copyright (c) 2015 Mike Nicholson
