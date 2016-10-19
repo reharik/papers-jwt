@@ -141,7 +141,7 @@ describe('Token extractor', function() {
     describe('fromExtractors', function() {
 
         it('should raise a type error when the extractor is constructed with a non-array argument', function() {
-            this_should_throw = function() {
+            var this_should_throw = function() {
                 var extractor = extract_jwt.fromExtractors({})
             }
 

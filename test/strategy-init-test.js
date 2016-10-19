@@ -1,6 +1,6 @@
 var strategy = require('../lib/strategy');
 
-describe('Strategy', function() {
+describe('strategy', function() {
 
     it('should throw if constructed without a validate function', function() {
         expect(function() {

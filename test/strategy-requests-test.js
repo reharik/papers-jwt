@@ -1,121 +1,75 @@
-var Strategy = require('../lib/strategy')
+var strategy = require('../lib/strategy')
+    , JwtVerifier = require('../lib/verify_jwt')
     , chai = require('chai')
-    , sinon = require('sinon')
     , test_data= require('./testdata')
     , url = require('url')
-    , extract_jwt = require('../lib/extract_jwt')
+    , extract_jwt = require('../lib/extract_jwt');
 
 
-describe('Strategy', function() {
-
-    var mockVerifier = null;
-
-    before(function() {
-        // Replace the JWT Verfier with a stub to capture the value
-        // extracted from the request
-        mockVerifier = sinon.stub();
-        mockVerifier.callsArgWith(3, null, test_data.valid_jwt.payload);
-        Strategy.JwtVerifier = mockVerifier;
-    });
-    
-
+describe('strategy-requests', function() {
 
     describe('handling request JWT present in request', function() {
-        var s;
-
-        before(function(done) {
-            s = strategy(                function(jwt_payload, next) {
-                // Return values aren't important in this case
-                return next(null, {}, {});
+        var result;
+        before(async function() {
+            var s = strategy(function(jwt_payload) {
+                return Promise.resolve(jwt_payload);
             },
               {
                     jwtFromRequest: function (r) { return test_data.valid_jwt.token; },
-                    secretOrKey: 'secret'
+                    secretOrKey: 'secret',
+                    JwtVerifier
                 }
             );
-            
-            mockVerifier.reset();
-           
-            chai.passport.use(s)
-                .success(function(u, i) {
-                    done();
-                })
-                .authenticate();
+
+            let req = {};
+            result = await s.authenticate(req);
         });
 
 
         it("verifies the right jwt", function() {
-            sinon.assert.calledOnce(mockVerifier);
-            expect(mockVerifier.args[0][0]).to.equal(test_data.valid_jwt.token);
+            expect(result.details.user).to.eql(test_data.valid_jwt.payload);
         });
     });
 
 
-
     describe('handling request with NO JWT', function() {
+        var s;
+        var result;
+        before(async function() {
+            s = strategy(function(jwt_payload) {
+                return Promise.resolve(jwt_payload);
+            },{jwtFromRequest: function(r) {}, secretOrKey: 'secret'});
 
-        var info;
-
-        before(function(done) {
-            strategy = new Strategy({jwtFromRequest: function(r) {}, secretOrKey: 'secret'}, function(jwt_payload, next) {
-                // Return values aren't important in this case
-                return next(null, {}, {});
-            });
-            
-            mockVerifier.reset();
-           
-            chai.passport.use(strategy)
-                .fail(function(i) {
-                    info = i
-                    done();
-                })
-                .req(function(req) {
-                    req.body = {}
-                })
-                .authenticate();
+            let req = {body:{}};
+            result = await s.authenticate(req);
         });
 
 
         it('should fail authentication', function() {
-            expect(info).to.be.an.object;
-            expect(info.message).to.equal("No auth token");
+            expect(result.details.error.message).to.equal("No auth token");
         });
 
 
         it('Should not try to verify anything', function() {
-            sinon.assert.notCalled(mockVerifier);
+            expect(result.type).to.equal('fail')
         });
 
     });
 
     describe('handling request url set to url.Url instead of string', function() {
+        var s;
+        var result;
+        before(async function() {
+            s = strategy(function(jwt_payload) {
+                return Promise.resolve(jwt_payload);
+            },{jwtFromRequest: function(r) {}, secretOrKey: 'secret'});
 
-        var info;
-
-        before(function(done) {
-            strategy = new Strategy({jwtFromRequest: function(r) {}, secretOrKey: 'secret'}, function(jwt_payload, next) {
-                // Return values aren't important in this case
-                return next(null, {}, {});
-            });
-
-            mockVerifier.reset();
-
-            chai.passport.use(strategy)
-                .fail(function(i) {
-                    info = i
-                    done();
-                })
-                .req(function(req) {
-                    req.body = {};
-                    req.url = new url.Url('/');
-                })
-                .authenticate();
+            let req = {body:{},url: new url.Url('/')};
+            result = await s.authenticate(req);
         });
 
-
         it('should fail authentication', function() {
-            expect(info).to.be.an.object;
-            expect(info.message).to.equal("No auth token");
+            expect(result.details.error.message).to.equal("No auth token");
         });
 
     });
