@@ -1,6 +1,7 @@
-[![Build Status](https://travis-ci.org/reharik/papers-jwt.svg)](https://travis-ci.org/reharik/papers-jwt)
+[![Build Status](https://travis-ci.org/reharik/papers-jwt.svg?branch=master)](https://travis-ci.org/reharik/papers-jwt)
 [![Code Climate](https://codeclimate.com/github/reharik/papers-jwt/badges/gpa.svg)](https://codeclimate.com/github/reharik/papers-jwt)
 [![Test Coverage](https://codeclimate.com/github/reharik/papers-jwt/badges/coverage.svg)](https://codeclimate.com/github/reharik/papers-jwt/coverage)
+[![Issue Count](https://codeclimate.com/github/reharik/papers-jwt/badges/issue_count.svg)](https://codeclimate.com/github/reharik/papers-jwt)
 
 # papers-jwt
 
